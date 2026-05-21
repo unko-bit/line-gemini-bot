@@ -1,23 +1,22 @@
 from flask import Flask, request, abort
 import os
 import google.generativeai as genai
-from linebot.v3 import WebhookHandler
+from linebot.v3.webhook import WebhookHandler
+from linebot.exceptions import InvalidSignatureException
+from linebot.models import MessageEvent, TextMessage
 from linebot.v3.messaging import (
     Configuration,
     ApiClient,
     MessagingApi,
     ReplyMessageRequest,
-    TextMessage
+    TextMessage as LineTextMessage
 )
-from linebot.v3.webhook import WebhookHandler
-from linebot.exceptions import InvalidSignatureException
-from linebot.models import MessageEvent, TextMessage
 
 app = Flask(__name__)
 
-# LINE & Gemini の設定（環境変数から読み込む形、または直接貼り付け）
+# LINE & Gemini の設定（環境変数から読み込み）
 configuration = Configuration(access_token=os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
-handler = v3.WebhookHandler(os.environ.get("LINE_CHANNEL_SECRET"))
+handler = WebhookHandler(os.environ.get("LINE_CHANNEL_SECRET"))
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.route("/callback", methods=['POST'])
@@ -30,10 +29,10 @@ def callback():
         abort(400)
     return 'OK'
 
-@handler.add(MessageEvent, message=TextMessageContent)
+@handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_message = event.message.text
-
+    
     # Geminiで返信を生成
     model = genai.GenerativeModel('gemini-pro')
     response = model.generate_content(user_message)
@@ -45,7 +44,7 @@ def handle_message(event):
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
-                messages=[TextMessage(text=reply_text)]
+                messages=[LineTextMessage(text=reply_text)]
             )
         )
 
