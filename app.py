@@ -3,7 +3,6 @@ from flask import Flask, request, abort
 from google import genai
 from linebot.v3.webhook import WebhookHandler
 from linebot.exceptions import InvalidSignatureException
-from linebot.models import MessageEvent, TextMessage
 from linebot.v3.messaging import (
     Configuration,
     ApiClient,
