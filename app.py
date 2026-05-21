@@ -9,14 +9,15 @@ from linebot.v3.messaging import (
     ReplyMessageRequest,
     TextMessage
 )
-from linebot.v3.exceptions import InvalidSignatureException
-from linebot.v3.webhooks import MessageEvent, TextMessageContent
+from linebot.v3.webhook import WebhookHandler
+from linebot.exceptions import InvalidSignatureException
+from linebot.models import MessageEvent, TextMessage
 
 app = Flask(__name__)
 
 # LINE & Gemini の設定（環境変数から読み込む形、または直接貼り付け）
 configuration = Configuration(access_token=os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
-handler = WebhookHandler(os.environ.get("LINE_CHANNEL_SECRET"))
+handler = v3.WebhookHandler(os.environ.get("LINE_CHANNEL_SECRET"))
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.route("/callback", methods=['POST'])
