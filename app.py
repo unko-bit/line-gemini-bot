@@ -1,8 +1,8 @@
 import os
 from flask import Flask, request, abort
-import google.generativeai as genai
+from google import genai
 from linebot.v3.webhook import WebhookHandler
-from linebot.exceptions import InvalidSignatureException
+from linebot.v3.webhooks import InvalidSignatureException
 from linebot.models import MessageEvent, TextMessage
 from linebot.v3.messaging import (
     Configuration,
