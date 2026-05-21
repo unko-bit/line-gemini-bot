@@ -3,9 +3,12 @@ from flask import Flask, request, abort
 import google.generativeai as genai
 
 from linebot.v3.webhook import WebhookHandler
-from linebot.v3.exceptions import InvalidSignatureException
 
-from linebot.v3.webhooks import MessageEvent, TextMessage
+from linebot.v3.webhooks import (
+    MessageEvent,
+    TextMessageContent,
+    InvalidSignatureError
+)
 
 from linebot.v3.messaging import (
     Configuration,
@@ -14,8 +17,6 @@ from linebot.v3.messaging import (
     ReplyMessageRequest,
     TextMessage as LineTextMessage
 )
-from linebot.v3.webhooks import TextMessageContent
-from linebot.exceptions import InvalidSignatureException
 
 app = Flask(__name__)
 
@@ -33,17 +34,18 @@ genai.configure(
     api_key=os.environ.get("GEMINI_API_KEY")
 )
 
-@app.route("/callback", methods=['POST'])
+@app.route("/callback", methods=["POST"])
 def callback():
-    signature = request.headers.get('X-Line-Signature')
+    signature = request.headers.get("X-Line-Signature")
     body = request.get_data(as_text=True)
 
     try:
         handler.handle(body, signature)
-    except InvalidSignatureException:
+
+    except InvalidSignatureError:
         abort(400)
 
-    return 'OK'
+    return "OK"
 
 
 @handler.add(MessageEvent, message=TextMessageContent)
@@ -51,27 +53,44 @@ def handle_message(event):
 
     user_message = event.message.text
 
-    # Gemini呼び出し
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    try:
+        # Gemini呼び出し
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
-    response = model.generate_content(user_message)
+        response = model.generate_content(user_message)
 
-    reply_text = response.text
+        reply_text = response.text
+
+    except Exception as e:
+        reply_text = f"エラーが発生しました: {str(e)}"
 
     # LINE返信
     with ApiClient(configuration) as api_client:
+
         line_bot_api = MessagingApi(api_client)
 
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[
-                    LineTextMessage(text=reply_text)
+                    LineTextMessage(
+                        text=reply_text
+                    )
                 ]
             )
         )
 
 
+@app.route("/")
+def home():
+    return "LINE Gemini Bot is running!"
+
+
 if __name__ == "__main__":
+
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
